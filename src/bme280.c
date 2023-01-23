@@ -214,7 +214,7 @@ int bme280ReadValues(int *T, int *P, int *H)
 
 } /* bme280ReadValues() */
 
-void getBMETemperature(float *temp) {
+void get_external_temp(float *temp) {
 	int status, temperature, pressure, humidity = 0;
 
 	do {
