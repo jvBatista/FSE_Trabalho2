@@ -5,24 +5,22 @@
 #include "uart.h"
 #include "pwm.h"
 
-void close_app(int uart_filestream){
-  printf("Encerrando...\n\n");
-
-  send_request(uart_filestream, SEND_CODE, SYSTEM_STATE_CODE, 0, 1, INT_TYPE);
-  send_request(uart_filestream, SEND_CODE, CONTROL_SIGNAL_CODE, 0, 4, INT_TYPE);  
-
-  update_pin(FAN_PIN, 0);
-  update_pin(RESISTOR_PIN, 0);
-
-  close_uart(uart_filestream);
-  printf("Sistema encerrado\n");
-
-  exit(0);
-}
 
 int switch_system(int uart_filestream, int state) {
   int response = -1, tries_num = 0;
   send_request(uart_filestream, SEND_CODE, SYSTEM_STATE_CODE, state, 1, INT_TYPE);
+
+  do {
+    response = get_response(uart_filestream, INT_TYPE);
+    tries_num++;
+  } while (response == -1.0 && tries_num >= MAX_TRIES);
+
+  return response;
+}
+
+int send_working_state(int uart_filestream, int state) {
+  int response = -1, tries_num = 0;
+  send_request(uart_filestream, SEND_CODE, WORKING_STATE_CODE, state, 1, INT_TYPE);
 
   do {
     response = get_response(uart_filestream, INT_TYPE);
@@ -61,6 +59,18 @@ float get_internal_temperature(int uart_filestream) {
   return internal_temp;
 }
 
+int send_external_temperature(int uart_filestream, float external_temp) {
+  int response = -1, tries_num = 0;
+  send_request(uart_filestream, SEND_CODE, ROOM_TEMP_CODE, external_temp, 1, FLOAT_TYPE);
+
+  do {
+    response = get_response(uart_filestream, INT_TYPE);
+    tries_num++;
+  } while (response == -1.0 && tries_num >= MAX_TRIES);
+
+  return response;
+}
+
 float get_target_temperature(int uart_filestream) {
   float target_temp = 0.0, tries_num = 0;
   send_request(uart_filestream, REQUEST_CODE, POTENTIOMETER_TEMP_CODE, NO_DATA_FLAG, 0, FLOAT_TYPE);
@@ -83,4 +93,20 @@ int get_user_action(int uart_filestream) {
   } while (action == -1 && tries_num <= MAX_TRIES);
 
   return action;
+}
+
+void close_app(int uart_filestream){
+  printf("Encerrando...\n\n");
+
+  send_request(uart_filestream, SEND_CODE, SYSTEM_STATE_CODE, 0, 1, INT_TYPE);
+  send_request(uart_filestream, SEND_CODE, CONTROL_SIGNAL_CODE, 0, 4, INT_TYPE);  
+
+  update_pin(FAN_PIN, 0);
+  update_pin(RESISTOR_PIN, 0);
+
+  send_working_state(uart_filestream, OFF);
+  close_uart(uart_filestream);
+  printf("Sistema encerrado\n");
+
+  exit(0);
 }

@@ -31,6 +31,7 @@ int init_uart() {
 
 
 void close_uart(int uart_filestream) {
+    usleep(100000);
     close(uart_filestream);
 }
 

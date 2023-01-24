@@ -28,12 +28,14 @@
 #define RESISTOR_PIN 4 // GPIO 23
 #define FAN_PIN 5 // GPIO 24
 
-void close_app(int uart_filestream);
 int switch_system(int uart_filestream, int system_state);
+int send_working_state(int uart_filestream, int state);
 int set_temperature_source(int uart_filestream, int temp_source);
 void set_target_temperature(int uart_filestream, int target_temperature);
+int send_external_temperature(int uart_filestream, float external_temp);
 float get_internal_temperature(int uart_filestream);
 float get_target_temperature(int uart_filestream);
 int get_user_action(int uart_filestream);
+void close_app(int uart_filestream);
 
 #endif

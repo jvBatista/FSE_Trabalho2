@@ -19,15 +19,19 @@ int main()
     float prev_external_temp = 0, prev_internal_temp = 0, prev_target_temp = 0;
     int user_action = -1;
     int fan_value, resistor_value;
-    int temperature_source = 0; // 1 = teclado, 2 = potenciomentro, 3 = curva de temperatura
+    int temperature_source = 0;
     double pid_value = 0;
     int reflow_times[10], reflow_temps[10], current_reflow_pos = -1;
     float reflow_timer_count = 0.0;
     float kp, ki, kd;
 
+    /* ================== inicialização ===========================*/
+
     uart_filestream = init_uart();
     signal(SIGINT, close_app);
     init_csv();
+
+    /* ================== define origem da temperatura ref ===========================*/
 
     printf("Selecione o modo de controle da temperatura de referência:\n\n1-Teclado\n2-Potenciometro\n3-Curva de temperatura\n\n");
     scanf("%d", &temperature_source);
@@ -66,11 +70,16 @@ int main()
 
     switch_system(uart_filestream, ON);
 
+    /* ================== loop ===========================*/
+
     while (1)
     {
+        /* ================== recebe temperatura interna ===========================*/
+        send_working_state(uart_filestream, ON);
         internal_temp = get_internal_temperature(uart_filestream);
         internal_temp == -1.0 ? (internal_temp = prev_internal_temp) : (prev_internal_temp = internal_temp);
 
+        /* ================== ajusta origem da TR ===========================*/
         switch (temperature_source) {
             case 1:
             set_target_temperature(uart_filestream, target_temp);
@@ -91,9 +100,11 @@ int main()
             break;
         }
 
+        /* ================== recebe temperatura ambiente ===========================*/
         get_external_temp(&external_temp);
         external_temp == -1.0 ? (external_temp = prev_external_temp) : (prev_external_temp = external_temp);
 
+        /* ================== comando do usuário ===========================*/
         user_action = get_user_action(uart_filestream);
         switch (user_action) {
             case 1:
@@ -107,13 +118,13 @@ int main()
             break;
 
             case 3:
-            printf("Controle via potenciometro...\n\n");
+            printf("Controle por dashboard...\n\n");
             temperature_source = 2;
             set_temperature_source(uart_filestream, POTENTIOMETER_SOURCE);
             break;
 
             case 4:
-            printf("Controle via curva...\n\n");
+            printf("Controle por curva...\n\n");
             temperature_source = 3;
             set_temperature_source(uart_filestream, TERMINAL_SOURCE);
             read_reflow_csv(reflow_times, reflow_temps, 10);
@@ -124,7 +135,7 @@ int main()
             break;
         }
 
-        // pid calc 
+        /* ================== cálculo PID ===========================*/
         pid_atualiza_referencia(target_temp);
         pid_value = pid_controle(internal_temp);
 
@@ -148,7 +159,10 @@ int main()
             resistor_value = 0;
         }
 
-        send_request(uart_filestream, SEND_CODE, CONTROL_SIGNAL_CODE, (int)pid_value, 4, INT_TYPE);  
+        send_request(uart_filestream, SEND_CODE, CONTROL_SIGNAL_CODE, (int)pid_value, 4, INT_TYPE);
+
+        /* ================== envia temperatura ambiente ===========================*/
+        send_external_temperature(uart_filestream, external_temp);
 
         write_on_csv(internal_temp, target_temp, external_temp, target_temp, fan_value, resistor_value, pid_value);
 
