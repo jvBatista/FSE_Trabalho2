@@ -12,9 +12,9 @@ void send_request(int uart_filestream, unsigned char code, unsigned char sub_cod
   *msg_ptr++ = code;
   *msg_ptr++ = sub_code;
   *msg_ptr++ = 0x09;
-  *msg_ptr++ = 0x02;
-  *msg_ptr++ = 0x08;
-  *msg_ptr++ = 0x07;
+  *msg_ptr++ = 0x09;
+  *msg_ptr++ = 0x06;
+  *msg_ptr++ = 0x03;
 
   if (data != -1) {
     if (type == 'i') {
